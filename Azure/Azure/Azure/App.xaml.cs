@@ -9,8 +9,9 @@ namespace Azure
         public App()
         {
             InitializeComponent();
+            Register();
 
-            MainPage = new MainPage();
+            MainPage = new NavigationPage(new MainPage());
         }
 
         protected override void OnStart()
@@ -23,6 +24,11 @@ namespace Azure
 
         protected override void OnResume()
         {
+        }
+
+        void Register()
+        {
+            DependencyService.Register<B2CAuthenticationService>();
         }
     }
 }

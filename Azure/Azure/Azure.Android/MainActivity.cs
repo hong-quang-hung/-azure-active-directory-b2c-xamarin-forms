@@ -4,6 +4,8 @@ using Android.App;
 using Android.Content.PM;
 using Android.Runtime;
 using Android.OS;
+using Xamarin.Forms;
+using Plugin.CurrentActivity;
 
 namespace Azure.Droid
 {
@@ -12,10 +14,14 @@ namespace Azure.Droid
     {
         protected override void OnCreate(Bundle savedInstanceState)
         {
+            Init(savedInstanceState);
+            Register();
+
             base.OnCreate(savedInstanceState);
 
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
             global::Xamarin.Forms.Forms.Init(this, savedInstanceState);
+
             LoadApplication(new App());
         }
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Android.Content.PM.Permission[] grantResults)
@@ -23,6 +29,16 @@ namespace Azure.Droid
             Xamarin.Essentials.Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);
 
             base.OnRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+
+        void Init(Bundle bundle)
+        {
+            CrossCurrentActivity.Current.Init(this, bundle);
+        }
+
+        void Register()
+        {
+            DependencyService.Register<IParentWindowLocatorService, AndroidParentWindowLocatorService>();
         }
     }
 }
