@@ -1,0 +1,9 @@
+
+*.DS_Store
+*.user
+
+/Azure/**/.vs/
+/Azure/**/obj/
+/Azure/**/bin/
+
+Azure/Azure/Azure.Android/Resources/Resource.designer.cs
