@@ -8,7 +8,7 @@ namespace Azure
     {
         public static string Tenant = "fabrikamb2c.onmicrosoft.com";
         public static string AzureADB2CHostname = "fabrikamb2c.b2clogin.com";
-        public static string ClientID = "e5737214-6372-472c-a85a-68e8fbe6cf3c";
+        public static string ClientID = "54d7230e-1066-4351-a528-dc67302c5649";
 
         public static string PolicySignUpSignIn = "b2c_1_susi";
         public static string PolicyEditProfile = "b2c_1_edit_profile";

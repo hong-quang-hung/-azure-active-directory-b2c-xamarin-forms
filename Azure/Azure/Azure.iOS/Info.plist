@@ -38,7 +38,7 @@
     <key>CFBundleDisplayName</key>
     <string>Azure</string>
     <key>CFBundleIdentifier</key>
-    <string>com.companyname.Azure</string>
+    <string>com.yourcompany.UserDetailsClient</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>UILaunchStoryboardName</key>
