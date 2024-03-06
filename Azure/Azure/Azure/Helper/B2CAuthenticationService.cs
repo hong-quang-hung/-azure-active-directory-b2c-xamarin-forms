@@ -64,11 +64,10 @@ namespace Azure
         {
             AuthenticationResult authResult = await PCA.AcquireTokenInteractive(B2CSettings.Scopes)
                 .WithPrompt(Prompt.NoPrompt)
-                .WithAuthority(B2CSettings.AuthorityPasswordReset)
+                .WithTenantId(B2CSettings.TenantID)
                 .ExecuteAsync();
 
             var userContext = UpdateUserInfo(authResult);
-
             return userContext;
         }
 
@@ -79,11 +78,10 @@ namespace Azure
             AuthenticationResult authResult = await PCA.AcquireTokenInteractive(B2CSettings.Scopes)
                 .WithAccount(GetAccountByPolicy(accounts, B2CSettings.PolicyEditProfile))
                 .WithPrompt(Prompt.NoPrompt)
-                .WithAuthority(B2CSettings.AuthorityEditProfile)
+                .WithTenantId(B2CSettings.TenantID)
                 .ExecuteAsync();
 
             var userContext = UpdateUserInfo(authResult);
-
             return userContext;
         }
 
@@ -106,8 +104,11 @@ namespace Azure
                 accounts = await PCA.GetAccountsAsync();
             }
 
-            var signedOutContext = new UserContext();
-            signedOutContext.IsLoggedOn = false;
+            var signedOutContext = new UserContext
+            {
+                IsLoggedOn = false
+            };
+
             return signedOutContext;
         }
 
@@ -133,8 +134,11 @@ namespace Azure
 
         public UserContext UpdateUserInfo(AuthenticationResult ar)
         {
-            var newContext = new UserContext();
-            newContext.IsLoggedOn = false;
+            var newContext = new UserContext
+            {
+                IsLoggedOn = false
+            };
+
             JObject user = ParseIdToken(ar.IdToken);
 
             newContext.AccessToken = ar.AccessToken;

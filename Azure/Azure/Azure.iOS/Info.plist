@@ -26,10 +26,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.yourcompany.UserDetailsClient</string>
+			<string>com.Fast.BusinessOnline</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>msal90c0fe63-bcf2-44d5-8fb7-b8bbc0b29dc6</string>
+				<string>msal2701e456-0937-4464-8dcf-2ecd91930a30</string>
 			</array>
 		</dict>
 	</array>
@@ -38,7 +38,7 @@
     <key>CFBundleDisplayName</key>
     <string>Azure</string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourcompany.UserDetailsClient</string>
+    <string>com.Fast.BusinessOnline</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>UILaunchStoryboardName</key>

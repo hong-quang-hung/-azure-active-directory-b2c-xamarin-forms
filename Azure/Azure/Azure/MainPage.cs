@@ -16,11 +16,15 @@ namespace Azure
             LoginButton = new Button()
             {
                 Text = "Logn In",
+                TextColor = Color.White,
                 FontAttributes = FontAttributes.Bold,
                 VerticalOptions = LayoutOptions.Center,
                 HorizontalOptions = LayoutOptions.FillAndExpand,
-                HeightRequest = 40,
-                CornerRadius = 5,
+                HeightRequest = 45,
+                BackgroundColor = Color.CadetBlue,
+                BorderColor = Color.CadetBlue,
+                BorderWidth = 2,
+                CornerRadius = 10,
             };
             LoginButton.Clicked += LoginButton_Clicked;
 

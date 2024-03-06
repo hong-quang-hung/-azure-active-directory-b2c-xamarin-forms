@@ -5,7 +5,11 @@ using Microsoft.Identity.Client;
 namespace Azure.Droid
 {
     [Activity(Exported = true)]
-    [IntentFilter(new[] { Intent.ActionView }, Categories = new[] { Intent.CategoryBrowsable, Intent.CategoryDefault }, DataHost = "auth", DataScheme = "msal90c0fe63-bcf2-44d5-8fb7-b8bbc0b29dc6")]
+    [IntentFilter(
+        new[] { Intent.ActionView },
+        Categories = new[] { Intent.CategoryBrowsable, Intent.CategoryDefault },
+        DataHost = "auth", DataScheme = "msal2701e456-0937-4464-8dcf-2ecd91930a30"
+    )]
     public class MsalActivity : BrowserTabActivity
     {
     }
