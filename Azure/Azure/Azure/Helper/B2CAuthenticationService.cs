@@ -81,7 +81,7 @@ namespace Azure
                         try
                         {
                             authResult = await PCA.AcquireTokenInteractive(B2CSettings.Scopes)
-                                                 .WithAuthority($"https://login.microsoftonline.com/{B2CSettings.TenantID}")
+                                                 .WithAuthority($"https://login.microsoftonline.com/{B2CSettings.TenantID}/v2.0")
                                                  .WithParentActivityOrWindow(ParentWindow)
                                                  .WithUseEmbeddedWebView(true)
                                                  .ExecuteAsync();
