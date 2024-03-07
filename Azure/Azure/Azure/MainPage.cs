@@ -49,52 +49,41 @@ namespace Azure
             On<Xamarin.Forms.PlatformConfiguration.iOS>().SetUseSafeArea(true);
         }
 
-        async void LoginButton_Clicked(object sender, System.EventArgs e)
+        void LoginButton_Clicked(object sender, EventArgs e)
         {
-            try
-            {
-                var userContext = await B2CAuthenticationService.Instance.SignInAsync();
-                UpdateSignInState(userContext);
-                UpdateUserInfo(userContext);
-            }
-            catch (Exception ex)
-            {
-                if (ex.Message.Contains("AADB2C90118"))
-                {
-                    OnPasswordReset();
-                }
-                else if (((ex as MsalException)?.ErrorCode != "authentication_canceled"))
-                {
-                    await DisplayAlert($"Exception:", ex.ToString(), "Dismiss");
-                }
-            }
+            B2CAuthenticationService.Instance.OnTokenFailed += Instance_OnTokenFailed;
+            B2CAuthenticationService.Instance.OnAuthenticationFailed += Instance_OnAuthenticationFailed;
+            B2CAuthenticationService.Instance.OnApiCallGraphFailed += Instance_OnApiCallGraphFailed;
+            B2CAuthenticationService.Instance.OnSignInSuccessed += Instance_OnSignInSuccessed;
+            B2CAuthenticationService.Instance.OnSignOutSuccessed += Instance_OnSignOutSuccessed;
+
+            B2CAuthenticationService.Instance.CreatePublicClient(true);
+            B2CAuthenticationService.Instance.AcquireTokenAsync().ConfigureAwait(false);
         }
 
-        async void OnPasswordReset()
+        private void Instance_OnSignInSuccessed(object sender, string e)
         {
-            try
-            {
-                var userContext = await B2CAuthenticationService.Instance.ResetPasswordAsync();
-                UpdateSignInState(userContext);
-                UpdateUserInfo(userContext);
-            }
-            catch (Exception ex)
-            {
-                if (((ex as MsalException)?.ErrorCode != "authentication_canceled"))
-                {
-                    await DisplayAlert($"Exception:", ex.ToString(), "Dismiss");
-                }
-            }
+            LoginButton.Text = "Logn Out";
         }
 
-        void UpdateSignInState(UserContext userContext)
+        private void Instance_OnSignOutSuccessed(object sender, EventArgs e)
         {
-            _ = userContext;
+            LoginButton.Text = "Logn In";
         }
 
-        void UpdateUserInfo(UserContext userContext)
+        private async void Instance_OnApiCallGraphFailed(object sender, string e)
         {
-            _ = userContext;
+            await DisplayAlert("API call to graph failed: ", e, "Dismiss");
+        }
+
+        private async void Instance_OnAuthenticationFailed(object sender, string e)
+        {
+            await DisplayAlert("Authentication failed. See exception message for details: ", e, "Dismiss");
+        }
+
+        private async void Instance_OnTokenFailed(object sender, string e)
+        {
+            await DisplayAlert("Acquire token interactive failed. See exception message for details: ", e, "Dismiss");
         }
     }
 }

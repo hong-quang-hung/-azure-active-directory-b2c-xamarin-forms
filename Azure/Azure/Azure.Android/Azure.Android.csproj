@@ -72,6 +72,7 @@
   <ItemGroup>
     <Compile Include="AndroidParentWindowLocatorService.cs" />
     <Compile Include="MainActivity.cs" />
+    <Compile Include="MainPageRenderer.cs" />
     <Compile Include="MsalActivity.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

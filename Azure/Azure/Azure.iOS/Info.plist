@@ -20,6 +20,11 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>msauthv2</string>
+		<string>msauthv3</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -29,7 +34,7 @@
 			<string>com.Fast.BusinessOnline</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>msal2701e456-0937-4464-8dcf-2ecd91930a30</string>
+				<string>msal</string>
 			</array>
 		</dict>
 	</array>

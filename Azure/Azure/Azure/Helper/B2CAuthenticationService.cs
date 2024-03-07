@@ -1,9 +1,8 @@
 ﻿using Microsoft.Identity.Client;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Xamarin.Forms;
 
@@ -11,165 +10,155 @@ namespace Azure
 {
     public class B2CAuthenticationService
     {
-        private readonly IPublicClientApplication PCA;
+        public object ParentWindow { get; set; }
 
-        private static readonly Lazy<B2CAuthenticationService> lazy = new Lazy<B2CAuthenticationService>(() => new B2CAuthenticationService());
+        public IPublicClientApplication PCA;
 
-        public static B2CAuthenticationService Instance { get { return lazy.Value; } }
+        public B2CState State { get; set; }
 
-        private B2CAuthenticationService()
+        public static B2CAuthenticationService Instance;
+
+        public event EventHandler<string> OnTokenFailed;
+        public event EventHandler<string> OnAuthenticationFailed;
+        public event EventHandler<string> OnApiCallGraphFailed;
+        public event EventHandler<string> OnSignInSuccessed;
+        public event EventHandler OnSignOutSuccessed;
+
+        static B2CAuthenticationService()
         {
-
-            var builder = PublicClientApplicationBuilder.Create(B2CSettings.ClientID)
-                .WithB2CAuthority(B2CSettings.AuthoritySignInSignUp)
-                .WithIosKeychainSecurityGroup(B2CSettings.IOSKeyChainGroup)
-                .WithRedirectUri($"msal{B2CSettings.ClientID}://auth");
-
-            var windowLocatorService = DependencyService.Get<IParentWindowLocatorService>();
-
-            if (windowLocatorService != null)
+            Instance = new B2CAuthenticationService
             {
-                builder = builder.WithParentActivityOrWindow(() => windowLocatorService?.GetCurrentParentWindow());
-            }
-
-            PCA = builder.Build();
+                State = B2CState.SignIn
+            };
         }
 
-        public async Task<UserContext> SignInAsync()
+        public void CreatePublicClient(bool useBroker)
         {
-            UserContext newContext;
+            if (PCA == null)
+            {
+                var builder = PublicClientApplicationBuilder.Create(B2CSettings.ClientID);
+
+                if (useBroker)
+                {
+                    switch (Device.RuntimePlatform)
+                    {
+                        case Device.Android:
+                            builder = builder.WithRedirectUri(B2CSettings.BrokerRedirectUriOnAndroid);
+                            break;
+                        case Device.iOS:
+                            builder = builder.WithIosKeychainSecurityGroup("com.microsoft.adalcache");
+                            builder = builder.WithRedirectUri(B2CSettings.BrokerRedirectUriOnIOS);
+                            break;
+                    }
+
+                    builder.WithBroker();
+                }
+                else
+                {
+                    builder = builder.WithRedirectUri($"msal{B2CSettings.ClientID}://auth");
+                }
+
+                PCA = builder.Build();
+            }
+        }
+
+        public async Task AcquireTokenAsync()
+        {
+            AuthenticationResult authResult = null;
+            IEnumerable<IAccount> accounts = await PCA.GetAccountsAsync();
             try
             {
-                newContext = await AcquireTokenSilent();
+                if (State == B2CState.SignIn)
+                {
+                    try
+                    {
+                        IAccount firstAccount = accounts.FirstOrDefault();
+                        authResult = await PCA.AcquireTokenSilent(B2CSettings.Scopes, firstAccount)
+                                              .ExecuteAsync();
+                    }
+                    catch (MsalUiRequiredException)
+                    {
+                        try
+                        {
+                            authResult = await PCA.AcquireTokenInteractive(B2CSettings.Scopes)
+                                                 .WithAuthority($"https://login.microsoftonline.com/{B2CSettings.TenantID}")
+                                                 .WithParentActivityOrWindow(ParentWindow)
+                                                 .WithUseEmbeddedWebView(true)
+                                                 .ExecuteAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            OnTokenFailed?.Invoke(ParentWindow, ex.Message);
+                            OnTokenFailed = null;
+                        }
+                    }
+
+                    if (authResult != null)
+                    {
+                        var content = await GetHttpContentWithTokenAsync(authResult.AccessToken);
+                        UpdateUserContent(content);
+                        State = B2CState.SignOut;
+                        Device.BeginInvokeOnMainThread(() =>
+                        {
+                            OnSignInSuccessed?.Invoke(ParentWindow, content);
+                            OnSignInSuccessed = null;
+                        });
+                    }
+                }
+                else
+                {
+                    while (accounts.Any())
+                    {
+                        await PCA.RemoveAsync(accounts.FirstOrDefault());
+                        accounts = await PCA.GetAccountsAsync();
+                    }
+
+                    State = B2CState.SignIn;
+                    Device.BeginInvokeOnMainThread(() =>
+                    {
+                        OnSignOutSuccessed?.Invoke(ParentWindow, EventArgs.Empty);
+                    });
+                }
             }
-            catch (MsalUiRequiredException)
+            catch (Exception ex)
             {
-                newContext = await SignInInteractively();
+                OnAuthenticationFailed?.Invoke(ParentWindow, ex.Message);
+                OnAuthenticationFailed = null;
             }
-            return newContext;
         }
 
-        private async Task<UserContext> AcquireTokenSilent()
+        private void UpdateUserContent(string content)
         {
-            IEnumerable<IAccount> accounts = await PCA.GetAccountsAsync();
-            AuthenticationResult authResult = await PCA.AcquireTokenSilent(B2CSettings.Scopes, GetAccountByPolicy(accounts, B2CSettings.PolicySignUpSignIn))
-               .WithB2CAuthority(B2CSettings.AuthoritySignInSignUp)
-               .ExecuteAsync();
-
-            var newContext = UpdateUserInfo(authResult);
-            return newContext;
-        }
-
-        public async Task<UserContext> ResetPasswordAsync()
-        {
-            AuthenticationResult authResult = await PCA.AcquireTokenInteractive(B2CSettings.Scopes)
-                .WithPrompt(Prompt.NoPrompt)
-                .WithTenantId(B2CSettings.TenantID)
-                .ExecuteAsync();
-
-            var userContext = UpdateUserInfo(authResult);
-            return userContext;
-        }
-
-        public async Task<UserContext> EditProfileAsync()
-        {
-            IEnumerable<IAccount> accounts = await PCA.GetAccountsAsync();
-
-            AuthenticationResult authResult = await PCA.AcquireTokenInteractive(B2CSettings.Scopes)
-                .WithAccount(GetAccountByPolicy(accounts, B2CSettings.PolicyEditProfile))
-                .WithPrompt(Prompt.NoPrompt)
-                .WithTenantId(B2CSettings.TenantID)
-                .ExecuteAsync();
-
-            var userContext = UpdateUserInfo(authResult);
-            return userContext;
-        }
-
-        private async Task<UserContext> SignInInteractively()
-        {
-            AuthenticationResult authResult = await PCA.AcquireTokenInteractive(B2CSettings.Scopes)
-                .ExecuteAsync();
-
-            var newContext = UpdateUserInfo(authResult);
-            return newContext;
-        }
-
-        public async Task<UserContext> SignOutAsync()
-        {
-
-            IEnumerable<IAccount> accounts = await PCA.GetAccountsAsync();
-            while (accounts.Any())
+            if (!string.IsNullOrEmpty(content))
             {
-                await PCA.RemoveAsync(accounts.FirstOrDefault());
-                accounts = await PCA.GetAccountsAsync();
+                _ = content;
             }
-
-            var signedOutContext = new UserContext
-            {
-                IsLoggedOn = false
-            };
-
-            return signedOutContext;
         }
 
-        private IAccount GetAccountByPolicy(IEnumerable<IAccount> accounts, string policy)
+        private async Task<string> GetHttpContentWithTokenAsync(string token)
         {
-            foreach (var account in accounts)
+            try
             {
-                string userIdentifier = account.HomeAccountId.ObjectId.Split('.')[0];
-                if (userIdentifier.EndsWith(policy.ToLower())) return account;
+                //get data from API
+                HttpClient client = new HttpClient();
+                HttpRequestMessage message = new HttpRequestMessage(HttpMethod.Get, "https://graph.microsoft.com/v1.0/me");
+                message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                HttpResponseMessage response = await client.SendAsync(message);
+                string responseString = await response.Content.ReadAsStringAsync();
+                return responseString;
             }
-
-            return null;
-        }
-
-        private string Base64UrlDecode(string s)
-        {
-            s = s.Replace('-', '+').Replace('_', '/');
-            s = s.PadRight(s.Length + (4 - s.Length % 4) % 4, '=');
-            var byteArray = Convert.FromBase64String(s);
-            var decoded = Encoding.UTF8.GetString(byteArray, 0, byteArray.Count());
-            return decoded;
-        }
-
-        public UserContext UpdateUserInfo(AuthenticationResult ar)
-        {
-            var newContext = new UserContext
+            catch (Exception ex)
             {
-                IsLoggedOn = false
-            };
-
-            JObject user = ParseIdToken(ar.IdToken);
-
-            newContext.AccessToken = ar.AccessToken;
-            newContext.Name = user["name"]?.ToString();
-            newContext.UserIdentifier = user["oid"]?.ToString();
-
-            newContext.GivenName = user["given_name"]?.ToString();
-            newContext.FamilyName = user["family_name"]?.ToString();
-
-            newContext.StreetAddress = user["streetAddress"]?.ToString();
-            newContext.City = user["city"]?.ToString();
-            newContext.Province = user["state"]?.ToString();
-            newContext.PostalCode = user["postalCode"]?.ToString();
-            newContext.Country = user["country"]?.ToString();
-
-            newContext.JobTitle = user["jobTitle"]?.ToString();
-
-            if (user["emails"] is JArray emails)
-            {
-                newContext.EmailAddress = emails[0].ToString();
+                OnApiCallGraphFailed?.Invoke(ParentWindow, ex.Message);
+                OnApiCallGraphFailed = null;
+                return ex.ToString();
             }
-            newContext.IsLoggedOn = true;
-
-            return newContext;
         }
+    }
 
-        JObject ParseIdToken(string idToken)
-        {
-            idToken = idToken.Split('.')[1];
-            idToken = Base64UrlDecode(idToken);
-            return JObject.Parse(idToken);
-        }
+    public enum B2CState
+    {
+        SignIn = 0,
+        SignOut = 1
     }
 }

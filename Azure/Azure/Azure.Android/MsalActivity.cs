@@ -8,7 +8,7 @@ namespace Azure.Droid
     [IntentFilter(
         new[] { Intent.ActionView },
         Categories = new[] { Intent.CategoryBrowsable, Intent.CategoryDefault },
-        DataHost = "auth", DataScheme = "msal2701e456-0937-4464-8dcf-2ecd91930a30"
+        DataHost = "auth", DataScheme = "msal"
     )]
     public class MsalActivity : BrowserTabActivity
     {
